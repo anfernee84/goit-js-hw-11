@@ -2,15 +2,14 @@ import { getPictures, stopFlag } from './fetchFunction';
 import Notiflix from 'notiflix';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
-// import template from './templates/template.hbs';
+import { renderGallery } from './renderFunction';
 
 let inputForm = document.querySelector('#search-form');
 let loadMoreButton = document.querySelector('#load-more-button');
 let gallery = document.querySelector('.gallery');
-
 let page = 1;
 let currentQuery = '';
-let lightbox = new SimpleLightbox('.card a', {
+let lightbox = new SimpleLightbox('.photo-card a', {
   captions: true,
   captionsData: 'alt',
   captionDelay: 250,
@@ -28,7 +27,9 @@ async function submitHandler(e) {
     loadMoreButton.hidden = false;
     Notiflix.Notify.success(`Hooray! We found ${response.total} images.`);
     gallery.innerHTML = '';
-    renderGallery(response.hits);
+    const markup = renderGallery(response.hits);
+    gallery.insertAdjacentHTML('beforeend', markup);
+    lightbox.refresh();
   } else {
     gallery.innerHTML = '';
     Notiflix.Notify.failure(
@@ -39,56 +40,17 @@ async function submitHandler(e) {
 }
 
 loadMoreButton.addEventListener('click', moreButtonHandler);
+
 async function moreButtonHandler() {
   page++;
   const response = await getPictures(currentQuery, page);
   console.log(response);
   if (stopFlag == 400) {
     loadMoreButton.hidden = true;
-    Notiflix.Notify.info('This is the end... Hold your breath and count to 10');
+    Notiflix.Notify.info('This is the end...');
     return;
   }
-  renderGallery(response.hits);
-}
-
-function renderGallery(elements) {
-  const markup = elements
-    .map(
-      ({
-        webformatURL,
-        largeImageURL,
-        tags,
-        likes,
-        views,
-        comments,
-        downloads,
-      }) => {
-        return `<div class="photo-card">
-  <a href="${largeImageURL}">
-    <img class="photo-img" src="${webformatURL}" alt="${tags}" loading="lazy" />
-  </a>
-  <div class="info">
-    <p class="info-item">
-      <b>Likes</b>
-      ${likes}
-    </p>
-    <p class="info-item">
-      <b>Views</b>
-      ${views}
-    </p>
-    <p class="info-item">
-      <b>Comments</b>
-      ${comments}
-    </p>
-    <p class="info-item">
-      <b>Downloads</b>
-      ${downloads}
-    </p>
-  </div>
-  </div>`;
-      }
-    )
-    .join('');
+  const markup = renderGallery(response.hits);
   gallery.insertAdjacentHTML('beforeend', markup);
   lightbox.refresh();
 }
